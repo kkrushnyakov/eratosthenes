@@ -8,27 +8,27 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.util.StopWatch;
 
 @SpringBootApplication
-public class EratosfenApplication implements CommandLineRunner {
+public class EratostheneApplication implements CommandLineRunner {
     
     
-    private static Logger log = LoggerFactory.getLogger(EratosfenApplication.class);
+    private static Logger log = LoggerFactory.getLogger(EratostheneApplication.class);
 
 //    public final static long MAXIMUM_NUMBER = 120; // 1024 * 1024 * 64;
-    public final static long MAXIMUM_NUMBER =  1000 * 1000 * 1000 ;
-//    public final static long MAXIMUM_NUMBER =  100 ;
+    public final static long MAXIMUM_NUMBER =  1_000_000_000;
+//    public final static long MAXIMUM_NUMBER =  10000 ;
 
-//    public final static int SIEVE_CHUNK_SIZE = 32; 
-    public final static int SIEVE_CHUNK_SIZE = 1024 * 1024 * 512;
+//    public final static int SIEVE_CHUNK_SIZE_LIMIT = 32; 
+    public final static int SIEVE_CHUNK_SIZE_LIMIT = 256 * 1024 * 1024;
 
     
     
-    public final static int THREADS = 1;//1024 * 1024;
+    public final static int THREADS = 4;//1024 * 1024;
     
 //    @SuppressWarnings("unused")
 //    private static Logger log = LoggerFactory.getLogger(EratosfenApplication.class);
 
 	public static void main(String[] args) {
-		SpringApplication.run(EratosfenApplication.class, args);
+		SpringApplication.run(EratostheneApplication.class, args);
 	}
 
     @Override
@@ -41,10 +41,11 @@ public class EratosfenApplication implements CommandLineRunner {
         stopWatch.start();
  
         
-        Sieve sieve = new Sieve(MAXIMUM_NUMBER, SIEVE_CHUNK_SIZE, THREADS);
+//        Sieve sieve = new Sieve(MAXIMUM_NUMBER, THREADS, SIEVE_CHUNK_SIZE);
+        Sieve sieve = new Sieve(MAXIMUM_NUMBER, THREADS);
         sieve.run();
         stopWatch.stop();
-        log.info("Execution time of Sieve(MAXIMUM_NUMBER = {}, SIEVE_CHUNK_SIZE = {}, THREADS = {}) = {} ms", MAXIMUM_NUMBER, SIEVE_CHUNK_SIZE, THREADS, stopWatch.getTotalTimeMillis());
+        log.info("Execution time of Sieve(MAXIMUM_NUMBER = {}, sieve.getChunkSize() = {}, THREADS = {}) = {} ms", MAXIMUM_NUMBER, sieve.getChunkSize(), THREADS, stopWatch.getTotalTimeMillis());
     }
 
 }

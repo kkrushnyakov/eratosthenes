@@ -1,0 +1,9 @@
+logging:
+  level:
+    ru.krushnyakov: DEBUG
+    org.springframework : INFO
+  pattern:
+    console: "%d{yyyy-MM-dd} %d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} -> %msg%n"
+   
+    
+     

@@ -4,8 +4,8 @@
 package ru.krushnyakov.eratosthenes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -18,21 +18,19 @@ import org.slf4j.LoggerFactory;
  * @author kkrushnyakov
  *
  */
-public class SieveChunk implements Future<List<Long>> {
+public class SieveChunk implements Future<List<Long>>, Runnable {
 
     private static Logger log = LoggerFactory.getLogger(SieveChunk.class);
 
-    
-    public final static int INIT_PIECE_SIZE = 8;
-    // 1024 * 1024;
-    
     private long maxNumber = 0;
 
     private int chunkIndex = 0;
     
-    private int chunkLength = 0;
+    private int chunkSize = 0;
     
-    private List<Long> primes;
+    private BlockingQueue<Long> primesIn;
+    
+    private BlockingQueue<Long> primesOut;
 
     private int[] data;
 
@@ -40,48 +38,63 @@ public class SieveChunk implements Future<List<Long>> {
      * 
      * @param primes
      * @param chunkIndex
-     * @param chunkLength должна быть степенью двойки!
+     * @param chunkSize должна быть степенью двойки!
      * @param maxNumber
      */
     
-    public SieveChunk(List<Long> primes, int chunkIndex, int chunkLength, long maxNumber, int[] dataSample) {
-        this.data = new int[chunkLength];
-        this.chunkLength = chunkLength;
+    public SieveChunk(BlockingQueue<Long> primesIn, BlockingQueue<Long> primesOut, int chunkIndex, int chunkSize, long maxNumber, int[] dataSample) {
+        this.data = dataSample;
+        this.chunkSize = chunkSize;
         this.chunkIndex = chunkIndex;
         this.maxNumber = maxNumber;
-        if(primes == null) throw new IllegalArgumentException("Primes can't be null!");
-        this.primes = new ArrayList<>(primes);
-
-        System.arraycopy(dataSample, 0, data, 0, dataSample.length);
-        if(data.length < 1000) 
-            log.debug("data = {}", Arrays.toString(data));
+        if(primesIn == null) throw new IllegalArgumentException("PrimesIn can't be null!");
+//        if(primesOut == null) throw new IllegalArgumentException("PrimesOut can't be null!");
+        this.primesIn = primesIn;
+        this.primesOut = primesOut;
+//        java.util.concurrent.BlockingQueue<Integer> out = new ;
+        
     }
 
-    public List<Long> countPrimes() {
+    public List<Long> countPrimes() throws InterruptedException {
         
-        List<Long> newPrimes = new ArrayList<>(chunkLength / 64);
+        List<Long> resultPrimes = new ArrayList<>(); 
+        if (primesOut == null) { 
+            resultPrimes = new ArrayList<>((int)Sieve.primeNumbersPerMaxNumber(maxNumber));
+        }
         
 // Отмечаем в решете простые числа из предыдущего чанка
-        
-        for(long currentPrime: primes) {
+        while(true) {
+           long currentPrime = primesIn.take();
+//        for(long currentPrime: primesIn) {
+            if (currentPrime == 0 ) break;
+            if(primesOut == null) {
+                resultPrimes.add(currentPrime);
+            } else {
+                primesOut.put(currentPrime);
+            }
             if (currentPrime == 2) continue;
 //            log.debug("<< (((chunkLength[{}] * (long) chunkIndex[{}]) / currentPrime[{}])[{}] * currentPrime[{}] + 1 ) = {}", chunkLength, chunkIndex, currentPrime, (chunkLength * (long) chunkIndex) / currentPrime, currentPrime, (int) (((chunkLength * (long) chunkIndex) / currentPrime) * currentPrime) % chunkLength);
-            for (int i = (int) (((chunkLength * (long) chunkIndex ) / currentPrime + 1) * currentPrime) - chunkIndex * chunkLength; i < chunkLength && (chunkLength * (long) chunkIndex) + i < maxNumber; i += (int) currentPrime) { 
+            
+            for (int i = (int) (((chunkSize * (long) chunkIndex ) / currentPrime + 1) * currentPrime) - chunkIndex * chunkSize; i < chunkSize && (chunkSize * (long) chunkIndex) + i < maxNumber; i += (int) currentPrime) { 
                 data[i] = 0;
 //                log.debug(" << {}: {}({}) = 0", currentPrime, i, (chunkLength * (long) chunkIndex) + i);
             }
         }
         
         
-        long currentPrime = (chunkIndex == 0 ? 3 : (chunkLength * (long) chunkIndex) + 1);
+        long currentPrime = (chunkIndex == 0 ? 3 : (chunkSize * (long) chunkIndex) + 1);
 
         
 // Ищем новые простые числа в текущем чанке        
-        while (currentPrime < (chunkIndex + 1) * chunkLength && currentPrime < maxNumber) {
-            if (data[(int) (currentPrime) % chunkLength] == 1) {
-                newPrimes.add(currentPrime);
+        while (currentPrime < (chunkIndex + 1) * chunkSize && currentPrime < maxNumber) {
+            if (data[(int) (currentPrime) % chunkSize] == 1) {
+                if(primesOut == null) {
+                    resultPrimes.add(currentPrime);
+                } else {
+                    primesOut.put(currentPrime);
+                }
 
-                for (int i = (int) (currentPrime) % chunkLength; i < chunkLength; i += (int) currentPrime) {
+                for (int i = (int) (currentPrime) % chunkSize; i < chunkSize; i += (int) currentPrime) {
                     data[i] = 0;
 //                    log.debug(" >> {}({}) = 0", i, chunkLength * ((long) chunkIndex ) + i);
                 }
@@ -90,7 +103,15 @@ public class SieveChunk implements Future<List<Long>> {
             currentPrime++;
             
         }
-        return newPrimes;
+        if(primesOut != null) {
+            primesOut.put(0l);
+        }
+
+        
+
+
+        
+        return resultPrimes;
     }
 
     @Override
@@ -113,13 +134,31 @@ public class SieveChunk implements Future<List<Long>> {
 
     @Override
     public List<Long> get() throws InterruptedException, ExecutionException {
-        // TODO Auto-generated method stub
-        return null;
+        
+        return countPrimes();
     }
 
     @Override
     public List<Long> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();      
+//        return countPrimes();
+    }
+
+    @Override
+    public void run() {
+        try {
+            List<Long> result = countPrimes();
+            if (!result.isEmpty()) {
+                if(result.size() < 100) {
+                    log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunkSize, maxNumber, result);
+                } else
+                {
+                    log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunkSize, maxNumber, result.size());
+                }
+            }
+            
+        } catch (InterruptedException e) {
+            log.error("{} interrupted", Thread.currentThread().getName());
+        }
     }
 }

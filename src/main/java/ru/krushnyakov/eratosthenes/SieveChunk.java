@@ -30,7 +30,7 @@ public class SieveChunk implements Future<List<Long>>, Runnable {
     
     private BlockingQueue<Long> primesIn;
     
-    private BlockingQueue<Long> primesOut;
+    private final BlockingQueue<Long> primesOut;
 
     private int[] data;
 

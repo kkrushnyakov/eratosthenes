@@ -23,6 +23,26 @@ public class Sieve implements Runnable {
 
     private int chunkSize;
     
+    public static final Map<Integer, Integer> PRIMES_DENSITY_DISTRIBUTION_MAP  = Collections.unmodifiableMap(new HashMap<>() {{
+        put(0, 100);
+        put(1, 40);
+        put(2, 26);
+        put(3, 17);
+        put(3, 17);
+        put(4, 13);
+        put(5, 10);
+        put(6, 8);
+        put(7, 7);
+        put(8, 6);
+        put(9, 6);
+        put(10, 5);
+        put(11, 5);
+        put(12, 4);
+        put(13, 4);
+        put(14, 4);
+        put(15, 3);
+    }});
+    
     // piece.length == 16
     private static int[] piece = new int[] {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1};
     
@@ -74,26 +94,7 @@ public class Sieve implements Runnable {
         return maxNumber / 100 * 
                 // https://en.wikipedia.org/wiki/Prime-counting_function
                 // процентное отношение количества простых чисел к числовому порядку предела поиска
-        new HashMap<Integer, Integer>() {{
-            put(0, 100);
-            put(1, 40);
-            put(2, 26);
-            put(3, 17);
-            put(3, 17);
-            put(4, 13);
-            put(5, 10);
-            put(6, 8);
-            put(7, 7);
-            put(8, 6);
-            put(9, 6);
-            put(10, 5);
-            put(11, 5);
-            put(12, 4);
-            put(13, 4);
-            put(14, 4);
-            put(15, 3);
-            
-        }}.get(Math.log10(maxNumber) > 15 ? 15 : (int)Math.ceil(Math.log10(maxNumber)));
+                PRIMES_DENSITY_DISTRIBUTION_MAP.get(Math.log10(maxNumber) > 15 ? 15 : (int)Math.ceil(Math.log10(maxNumber)));
         
     }
     

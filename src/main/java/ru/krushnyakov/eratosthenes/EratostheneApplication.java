@@ -14,16 +14,16 @@ public class EratostheneApplication implements CommandLineRunner {
     private static Logger log = LoggerFactory.getLogger(EratostheneApplication.class);
 
 //    public final static long MAXIMUM_NUMBER = 120; // 1024 * 1024 * 64;
-    public final static long MAXIMUM_NUMBER =  1_000_000_000;
+//    public final static long MAXIMUM_NUMBER =  1_000_000_000;
 //    public final static long MAXIMUM_NUMBER =  500_000_000;
-//    public final static long MAXIMUM_NUMBER =  1_000_000;
-//    public final static long MAXIMUM_NUMBER =  10000 ;
+//    public final static long MAXIMUM_NUMBER =  1_000_000_000;
+    public final static long MAXIMUM_NUMBER =  100 ;
 
 //    public final static int SIEVE_CHUNK_SIZE_LIMIT = 32; 
 //    public final static int SIEVE_CHUNK_SIZE_LIMIT = 256 * 1024 * 1024;
     public final static int SIEVE_CHUNK_SIZE_LIMIT = 1024 * 1024 * 1024;
     
-    public final static int THREADS = 8;//1024 * 1024;
+    public final static int THREADS = 2;//1024 * 1024;
     
 //    @SuppressWarnings("unused")
 //    private static Logger log = LoggerFactory.getLogger(EratosfenApplication.class);

@@ -48,7 +48,7 @@ public class Sieve implements Runnable {
     
 //    private List<Long> primes;
 
-    private List<BlockingQueue<Long>> primesPipes;
+    private List<BlockingQueue<long[]>> primesPipes;
     
     public Sieve(long maxNumber, int threadsNumber, int chunkSize) {
         this(maxNumber, threadsNumber);
@@ -65,11 +65,11 @@ public class Sieve implements Runnable {
         
         for (int i = 0; i < (int)Math.ceil(maxNumber / (double) countChunkSize(maxNumber, threadsNumber)) ; i++) {
 //            primesPipes.add(new ArrayBlockingQueue<Long>((int)(primeNumbersPerMaxNumber(maxNumber) / 100))); // !!!!
-            primesPipes.add(new ArrayBlockingQueue<Long>((int)(1024))); // !!!!
+            primesPipes.add(new ArrayBlockingQueue<long[]>((int)(2))); // !!!!
         }
         primesPipes.add(null);
-        primesPipes.get(0).add(2l);
-        primesPipes.get(0).add(0l);
+        primesPipes.get(0).add(new long[] {2l});
+        primesPipes.get(0).add(new long[0]);
     }
 
     public static int countChunkSize(long maxNumber, int threadsNumber) {
@@ -118,6 +118,7 @@ public class Sieve implements Runnable {
         log.debug("chunkSize = {}, dataSample.length = {}",  chunkSize, dataSample.length);
         
         Thread lastThread = null;
+//            log.debug("chunk[#{}  chunkSize={}, maxNumber={}]", i, chunkSize, maxNumber);
         
 //        primes.add(2l);
         for(int i = 0; i  * chunkSize < maxNumber; i ++) {
@@ -125,8 +126,9 @@ public class Sieve implements Runnable {
             System.arraycopy(dataSample, 0, initData, 0, dataSample.length);
 
 //            log.debug("chunk[#{}  chunkSize={}, maxNumber={}]", i, chunkSize, maxNumber);
-
-            lastThread = new Thread(new SieveChunk(primesPipes.get(i), primesPipes.get(i + 1), i, chunkSize, maxNumber, initData));
+            SieveChunk chunk = new SieveChunk(primesPipes.get(i), primesPipes.get(i + 1), i, chunkSize, maxNumber, initData);
+            log.debug("preparing chunk {}", chunk);
+            lastThread = new Thread(chunk);
             lastThread.start();
             
             

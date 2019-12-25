@@ -29,7 +29,7 @@ public class PerformanceTest {
 
     @Before
     public void init() {
-        dataSample = new long[EratostheneApplication.SIEVE_CHUNK_SIZE_LIMIT];
+        dataSample = new long[Sieve.SIEVE_CHUNK_SIZE_LIMIT];
     }
 
     Logger log = LoggerFactory.getLogger(getClass());
@@ -37,7 +37,7 @@ public class PerformanceTest {
     @Test
     public void arrayLoopTest() {
 
-        for (int step = 2; step < EratostheneApplication.SIEVE_CHUNK_SIZE_LIMIT / 10; step *= 2) {
+        for (int step = 2; step < Sieve.SIEVE_CHUNK_SIZE_LIMIT / 10; step *= 2) {
 
             StopWatch watch = new StopWatch();
             watch.start();

@@ -16,14 +16,14 @@ public class EratostheneApplication implements CommandLineRunner {
 //    public final static long MAXIMUM_NUMBER = 120; // 1024 * 1024 * 64;
 //    public final static long MAXIMUM_NUMBER =  1_000_000_000;
 //    public final static long MAXIMUM_NUMBER =  500_000_000;
-//    public final static long MAXIMUM_NUMBER =  1_000_000_000;
-    public final static long MAXIMUM_NUMBER =  100 ;
+    public final static long MAXIMUM_NUMBER =  2_000_000_000l;
+//    public final static long MAXIMUM_NUMBER =  100 ;
 
 //    public final static int SIEVE_CHUNK_SIZE_LIMIT = 32; 
 //    public final static int SIEVE_CHUNK_SIZE_LIMIT = 256 * 1024 * 1024;
-    public final static int SIEVE_CHUNK_SIZE_LIMIT = 1024 * 1024 * 1024;
     
-    public final static int THREADS = 2;//1024 * 1024;
+    
+    public final static int THREADS = 32;//1024 * 1024;
     
 //    @SuppressWarnings("unused")
 //    private static Logger log = LoggerFactory.getLogger(EratosfenApplication.class);
@@ -44,9 +44,9 @@ public class EratostheneApplication implements CommandLineRunner {
         
 //        Sieve sieve = new Sieve(MAXIMUM_NUMBER, THREADS, SIEVE_CHUNK_SIZE);
         Sieve sieve = new Sieve(MAXIMUM_NUMBER, THREADS);
-        sieve.run();
+        SieveResult result = sieve.sieve();
         stopWatch.stop();
-        log.info("Execution time of Sieve(MAXIMUM_NUMBER = {}, sieve.getChunkSize() = {}, THREADS = {}) = {} ms", MAXIMUM_NUMBER, sieve.getChunkSize(), THREADS, stopWatch.getTotalTimeMillis());
+        log.info("Execution time of Sieve(MAXIMUM_NUMBER = {}, THREADS = {}, ChunkSize() = {}, ResultSize = {}) = {} ms", sieve.getMaxNumber(), sieve.getThreadsNumber(), result.getChunkSize(), result.size(), stopWatch.getTotalTimeMillis());
     }
 
 }

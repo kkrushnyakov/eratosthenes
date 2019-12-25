@@ -55,4 +55,10 @@ public class SieveTest {
         assertEquals (Arrays.asList(1l, 2l, 3l, 4l, 5l, 6l, 7l, 8l, 9l, 10l), arraysList.stream().flatMapToLong(Arrays::stream).boxed().collect(Collectors.toList()));
     }
 
+    
+    @Test
+    public void countPrimesTest() {
+        assertEquals(0, 0);
+    }
+    
 }

@@ -59,13 +59,14 @@ public class SieveChunk implements Runnable {
     public List<Long> countPrimes() throws InterruptedException {
 
         List<long[]> resultPrimes = new ArrayList<>();
+        
         if (primesOut == null) {
             resultPrimes = new ArrayList<>((int) Sieve.primeNumbersPerMaxNumber(maxNumber));
         }
 
         // Отмечаем в решете простые числа из предыдущего чанка
-        long currentPrime = 2;
-        while (true) {
+        long currentPrime = 0;
+        while (true/*currentPrime != 0*/) {
             long[] currentPrimesPortion = primesIn.take();
 
             log.debug("took {}", Arrays.toString(currentPrimesPortion));
@@ -75,23 +76,25 @@ public class SieveChunk implements Runnable {
             if (primesOut == null) {
                 resultPrimes.add(currentPrimesPortion);
             } else {
-                    primesOut.put(currentPrimesPortion);
+                primesOut.put(currentPrimesPortion);
             }
             for (int arrayIndex = 0; arrayIndex < currentPrimesPortion.length; arrayIndex++) {
                 currentPrime = currentPrimesPortion[arrayIndex];
                 if (currentPrime == 2)
                     continue;
-
+                if (currentPrime == 0)
+                    break;
+                
                 for (int i = (int) (((chunkSize * (long) chunkIndex) / currentPrime + 1) * currentPrime)
                         - chunkIndex * chunkSize; i < chunkSize
                                 && (chunkSize * (long) chunkIndex) + i < maxNumber; i += (int) currentPrime) {
                     data[i] = 0;
-                    log.debug(" - <{}>> {}({}) = 0", currentPrime, i, chunkSize * ((long) chunkIndex) + i);
+                    log.debug(" from previous chunk {}  - <{}>> {}({}) = 0", this.chunkIndex - 1, currentPrime, i, chunkSize * ((long) chunkIndex) + i);
                 }
             }
         }
 
-//        long currentPrime = (chunkIndex == 0 ? 3 : (chunkSize * (long) chunkIndex) + 1);
+        currentPrime = (chunkIndex == 0 ? 3 : (chunkSize * (long) chunkIndex) + 1);
 
         // Ищем новые простые числа в текущем чанке
         int transitionArrayLength = 0;
@@ -124,7 +127,7 @@ public class SieveChunk implements Runnable {
 
                 for (int i = (int) (currentPrime) % chunkSize; i < chunkSize; i += (int) currentPrime) {
                     data[i] = 0;
-                    log.debug(" + <{}>> {}({}) = 0", currentPrime, i, chunkSize * ((long) chunkIndex) + i);
+                    log.debug("in current chunk {} + <{}>> {}({}) = 0", this.chunkIndex, currentPrime, i, chunkSize * ((long) chunkIndex) + i);
                 }
                 transitionArray[indexInTransitionArray] = currentPrime;
                 log.debug("transitionArray[{}] = {};", indexInTransitionArray, currentPrime);
@@ -138,7 +141,7 @@ public class SieveChunk implements Runnable {
 
         long[] finalArray = new long[indexInTransitionArray + 1];
 
-        if (indexInTransitionArray < transitionArray.length - 1) {
+        if (indexInTransitionArray < transitionArray.length) {
             System.arraycopy(transitionArray, 0, finalArray, 0, indexInTransitionArray + 1);
             if (primesOut == null) {
                 resultPrimes.add(finalArray);
@@ -151,7 +154,7 @@ public class SieveChunk implements Runnable {
             primesOut.put(new long[0]);
         }
        
-        List<Long> result = resultPrimes.stream().flatMapToLong(Arrays::stream).boxed().collect(Collectors.toList());
+        List<Long> result = resultPrimes.stream().flatMapToLong(Arrays::stream).boxed().filter(l -> l != 0).collect(Collectors.toList());
         if (result.size() > 0 && result.size() < 1000) {
             log.debug("result = {}", result);
         } else if (result.size() > 0) {

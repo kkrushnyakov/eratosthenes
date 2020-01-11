@@ -8,16 +8,13 @@ public class SieveResult {
 
     private long primesNumber;
 
-    private int chunksNumber;
+    private List<ChunkResult> chunks;
     
-    private int chunkSize;
-    
-    public SieveResult(List<Long> primes, long primesNumber, int chunksNumber, int chunkSize) {
+    public SieveResult(List<Long> primes, long primesNumber, List<ChunkResult> chunks) {
         super();
         this.primes = primes;
         this.primesNumber = primesNumber;
-        this.chunksNumber = chunksNumber;
-        this.chunkSize = chunkSize;
+        this.chunks = chunks;
     }
 
     public List<Long> getPrimes() {
@@ -28,14 +25,24 @@ public class SieveResult {
         return primesNumber;
     }
 
-    public int getChunksNumber() {
-        return chunksNumber;
+    public long getPrimesNumber() {
+        return primesNumber;
     }
 
-    public int getChunkSize() {
-        return chunkSize;
+    public List<ChunkResult> getChunks() {
+        return chunks;
     }
 
+    @Override
+    public String toString() {
+        final int maxLen = 100;
+        return "SieveResult [primes=" + (primes != null ? primes.subList(0, Math.min(primes.size(), maxLen)) : null) + ", primesNumber="
+                + primesNumber + ", chunks=" + (chunks != null ? chunks.subList(0, Math.min(chunks.size(), maxLen)) : null) + "]";
+    }
+
+
+    
+    
     
     
 }

@@ -31,6 +31,8 @@ public class SieveChunk implements Callable<ChunkResult> {
 
     private final BlockingQueue<long[]> primesOut;
 
+    private int[] dataSample;
+    
     private int[] data;
     
     private ChunkResult result;
@@ -47,42 +49,44 @@ public class SieveChunk implements Callable<ChunkResult> {
 
     public SieveChunk(BlockingQueue<long[]> primesIn, BlockingQueue<long[]> primesOut, int chunkIndex, int chunkSize, long maxNumber,
             int[] dataSample) {
-        this.data = dataSample;
+        this.dataSample = dataSample;
         this.chunkSize = chunkSize;
         this.chunkIndex = chunkIndex;
         this.maxNumber = maxNumber;
         if (primesIn == null)
             throw new IllegalArgumentException("PrimesIn can't be null!");
-        // if(primesOut == null) throw new IllegalArgumentException("PrimesOut can't be
-        // null!");
         this.primesIn = primesIn;
         this.primesOut = primesOut;
-        // java.util.concurrent.BlockingQueue<Integer> out = new ;
 
     }
 
     public ChunkResult countPrimes() throws InterruptedException {
 
+        data = new int[dataSample.length];
+        System.arraycopy(dataSample, 0, data, 0, dataSample.length);
+
+        
         List<long[]> resultPrimes = new ArrayList<>();
         long resultPrimesCounter = 0;
 
         if (primesOut == null) {
-            if (maxNumber < 1000) resultPrimes = new ArrayList<>((int) Sieve.primeNumbersPerMaxNumber(maxNumber));
+            if (maxNumber < 1000) resultPrimes = new ArrayList<>(192);
         }
 
         // Отмечаем в решете простые числа из предыдущего чанка
         long currentPrime = 0;
-        while (true/*currentPrime != 0*/) {
+        while (true) {
             long[] currentPrimesPortion = primesIn.take();
 
-//            log.debug("took {}", Arrays.toString(currentPrimesPortion));
+//            log.debug("[{}]took {}", chunkIndex, Arrays.toString(currentPrimesPortion));
 
             if (currentPrimesPortion.length == 0)
                 break;
+            resultPrimesCounter += currentPrimesPortion.length;
             if (primesOut == null) {
-                resultPrimesCounter += currentPrimesPortion.length;
                 if (maxNumber < 1000) resultPrimes.add(currentPrimesPortion);
             } else {
+//                log.debug("[{}]put {}", chunkIndex, Arrays.toString(currentPrimesPortion));
                 primesOut.put(currentPrimesPortion);
             }
             for (int arrayIndex = 0; arrayIndex < currentPrimesPortion.length; arrayIndex++) {
@@ -92,80 +96,102 @@ public class SieveChunk implements Callable<ChunkResult> {
                 if (currentPrime == 0)
                     break;
 
-                for (int i = (int) (((chunkSize * (long) chunkIndex) / currentPrime + 1) * currentPrime)
-                        - chunkIndex * chunkSize; i < chunkSize
-                                && (chunkSize * (long) chunkIndex) + i < maxNumber; i += (int) currentPrime) {
-                    data[i] = 0;
-//                    log.debug(" from previous chunk {}  - <{}>> {}({}) = 0", this.chunkIndex - 1, currentPrime, i, chunkSize * ((long) chunkIndex) + i);
-                }
+                
+                if(chunkIndex == 0 ) {
+                    for(long i = currentPrime; i < maxNumber && i < chunkSize; i += currentPrime) {
+                        data[(int)i] = 0;
+                    }
+                 } else {
+                     
+                     if (currentPrime < chunkSize) {
+                         for(long i = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex; chunkIndex * (long)chunkSize + i < maxNumber && i < chunkSize; i += currentPrime) {
+                             data[(int)i] = 0;
+                         }
+                     } else {
+                         long l = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex;
+                         if (l < chunkSize) {
+                             data[(int)l] = 0;
+                         }
+                         
+                     }
+                      
+                 }
             }
         }
 
         currentPrime = (chunkIndex == 0 ? 3 : (chunkSize * (long) chunkIndex) + 1);
 
         // Ищем новые простые числа в текущем чанке
-        int transitionArrayLength = 0;
+        int transitionArrayInitialLength = 0;
         int indexInTransitionArray = 0;
         long[] transitionArray = new long[] {};
 
-        while (currentPrime < (chunkIndex + 1) * chunkSize && currentPrime < maxNumber) {
+        while (currentPrime < (chunkIndex + 1) * (long)chunkSize && currentPrime <= maxNumber) {
 
-            if (data[(int) (currentPrime) % chunkSize] == 1) {
+            int ii = (int)((chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex);
+            if (data[ii] == 1) {
 
-                if (indexInTransitionArray == transitionArrayLength) {
+                if (indexInTransitionArray >= transitionArray.length) {
 
-                    if (currentPrime < 100) {
-                        transitionArrayLength = 1;
-                    } else if (currentPrime < 1000) { 
-                        transitionArrayLength = 4;
-                    } else if (currentPrime < 10000) { 
-                        transitionArrayLength = 16;
-                    } else if (currentPrime < 100000) { 
-                        transitionArrayLength = 64;
-                    } else 
-                        transitionArrayLength = 1024;
+                    transitionArrayInitialLength = transitionArraySize(currentPrime);
 
                     if (transitionArray.length > 0) {
+                        resultPrimesCounter += transitionArray.length;
                         if (primesOut == null) {
                             if (maxNumber < 1000) resultPrimes.add(transitionArray);
-                            resultPrimesCounter+= transitionArray.length;
                         } else {
+//                            log.debug("[{}]put transitionArray = {}", chunkIndex, Arrays.toString(transitionArray));
                             primesOut.put(transitionArray);
-//                            log.debug("put transitionArray = {}", Arrays.toString(transitionArray));
                         }
                     }
-                    transitionArray = new long[transitionArrayLength];
+                    transitionArray = new long[transitionArrayInitialLength];
                     indexInTransitionArray = 0;
                 }
 
-                for (int i = (int) (currentPrime) % chunkSize; i < chunkSize; i += (int) currentPrime) {
-                    data[i] = 0;
-//                    log.debug("in current chunk {} + <{}>> {}({}) = 0", this.chunkIndex, currentPrime, i, chunkSize * ((long) chunkIndex) + i);
-                }
+                if(chunkIndex == 0 ) {
+                    for(long i = currentPrime; i < maxNumber && i < chunkSize; i += currentPrime) {
+                        data[(int)i] = 0;
+                    }
+                 } else {
+                     
+                     if (currentPrime < chunkSize) {
+                         for(long i = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex; chunkIndex * (long)chunkSize + i < maxNumber && i < chunkSize; i += currentPrime) {
+                             data[(int)i] = 0;
+                         }
+                     } else {
+                         long l = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex;
+                         if (l < chunkSize) {
+                             data[(int)l] = 0;
+                         }
+                     }
+                      
+                 }                
+                
                 transitionArray[indexInTransitionArray] = currentPrime;
-//                log.debug("transitionArray[{}] = {};", indexInTransitionArray, currentPrime);
+//                log.debug("[{}]transitionArray[{}] = {};", chunkIndex, indexInTransitionArray, currentPrime);
                 indexInTransitionArray++;
-//                log.debug(">>(currentPrime[{}]) % chunkSize[{}] = {}", currentPrime, chunkSize, (currentPrime) % chunkSize);
             }
 
             currentPrime++;
 
         }
 
-        long[] finalArray = new long[indexInTransitionArray + 1];
+        long[] finalArray = new long[indexInTransitionArray];
 
-        if (indexInTransitionArray < transitionArray.length) {
-            System.arraycopy(transitionArray, 0, finalArray, 0, indexInTransitionArray + 1);
+        if (indexInTransitionArray <= transitionArray.length) {
+            System.arraycopy(transitionArray, 0, finalArray, 0, indexInTransitionArray );
+            resultPrimesCounter += finalArray.length;
             if (primesOut == null) {
                 if (maxNumber < 1000) resultPrimes.add(finalArray);
-                resultPrimesCounter += finalArray.length;
             } else {
                 primesOut.put(finalArray);
+//                log.debug("[{}]put finalArray = {}", chunkIndex, Arrays.toString(finalArray));
             }
         }
 
         if (primesOut != null) {
             primesOut.put(new long[0]);
+//            log.debug("put [null] array");
         }
 
         List<Long> resultPrimesList= resultPrimes.stream().flatMapToLong(Arrays::stream).boxed().filter(l -> l != 0).collect(Collectors.toList());
@@ -180,6 +206,25 @@ public class SieveChunk implements Callable<ChunkResult> {
             log.debug("result.size() = {}", getResult().size());
         }
         return result;
+    }
+
+    /**
+     * @param currentPrime
+     * @return
+     */
+    public static int transitionArraySize(long currentPrime) {
+        int transitionArrayLength;
+        if (currentPrime < 100) {
+            transitionArrayLength = 1;
+        } else if (currentPrime < 1000) { 
+            transitionArrayLength = 4;
+        } else if (currentPrime < 10000) { 
+            transitionArrayLength = 16;
+        } else if (currentPrime < 100000) { 
+            transitionArrayLength = 64;
+        } else 
+            transitionArrayLength = 1024;
+        return transitionArrayLength;
     }
 
     public synchronized ChunkResult getResult() {

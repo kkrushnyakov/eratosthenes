@@ -24,9 +24,19 @@ public class ChunkResult {
         return Collections.unmodifiableList(primes);
     }
 
+    
+    
     public long size() {
         return primesNumber;
     }
 
+    @Override
+    public String toString() {
+        final int maxLen = 100;
+        return "ChunkResult [primes=" + (primes != null ? primes.subList(0, Math.min(primes.size(), maxLen)) : null) + ", primesNumber="
+                + primesNumber + "]";
+    }
+
+    
 
 }

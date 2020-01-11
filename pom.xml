@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>ru.krushnyakov</groupId>
 	<artifactId>eratosthenes</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-RELEASE</version>
 	<name>eratosthenes</name>
 	<description>Eratosthenes sieve</description>
 

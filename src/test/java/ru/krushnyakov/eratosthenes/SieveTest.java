@@ -52,11 +52,11 @@ public class SieveTest {
 //        log.debug("result1 = {}", result1);
 //        assertEquals(25, new Sieve(100l, 1, 1024 * 1024 * 1024).sieve().size());
 //        assertEquals(25, new Sieve(100l, 4, 1024 * 1024 * 1024).sieve().size());
-        assertEquals(25, new Sieve(100l, 4, 64).sieve().size());
+        assertEquals(25, new Sieve(100l, 4, 64l).sieve().size());
 //        assertEquals(25, new Sieve(100l, 24, 16).sieve().size());
-        assertEquals(50847534, new Sieve(1_000_000_000l, 24, 1024 * 1024 * 1024).sieve().size());
-        assertEquals(102886526, new Sieve(2_100_000_000l, 24, 1024 * 1024 * 1024).sieve().size());
-        assertEquals(144449537, new Sieve(3_000_000_000l, 24, 1024 * 1024 * 1024).sieve().size());
+        assertEquals(50847534, new Sieve(1_000_000_000l, 24, 1024 * 1024 * 1024l).sieve().size());
+        assertEquals(102886526, new Sieve(2_100_000_000l, 24, 1024 * 1024 * 1024l).sieve().size());
+        assertEquals(144449537, new Sieve(3_000_000_000l, 24, 1024 * 1024 * 1024l).sieve().size());
         
     }
     

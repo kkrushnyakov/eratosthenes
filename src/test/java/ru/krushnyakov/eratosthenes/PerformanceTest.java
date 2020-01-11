@@ -25,12 +25,14 @@ import org.springframework.util.StopWatch;
  */
 public class PerformanceTest {
 
-    long[] dataSample;
+    private long[] dataSample;
 
+    private static final int ARRAY_SIZE = 128 * 1024 * 1024; 
+    
     @Before
     public void init() {
         
-//        dataSample = new long[EratostheneApplication.SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT];
+       dataSample = new long[ARRAY_SIZE];
     }
 
     Logger log = LoggerFactory.getLogger(getClass());
@@ -38,7 +40,7 @@ public class PerformanceTest {
     @Test
     public void arrayLoopTest() {
 
-        for (int step = 2; step < EratostheneApplication.SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT / 10; step *= 2) {
+        for (int step = 2; step < ARRAY_SIZE / 10; step *= 2) {
 
             StopWatch watch = new StopWatch();
             watch.start();

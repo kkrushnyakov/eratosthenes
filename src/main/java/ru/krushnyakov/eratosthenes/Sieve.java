@@ -28,14 +28,17 @@ public class Sieve {
 
     private List<BlockingQueue<long[]>> primesPipes;
 
-    public static final Map<Long, Integer> QUEUE_ARRAY_SIZES_MAP = Map.of(
+//    public static final int QUEUE_SIZES = 1048576;
+    public static final int MIN_QUEUE_SIZES = 16;
+//    public static final int QUEUE_SIZES = 1048576;
+            
+    public static final Map<Long, Integer> QUEUE_ARRAY_SIZES_MAP = Collections.unmodifiableMap(Map.of(
             100l, 1,
-            1000l, 4,
-            10000l, 16,
-            100000l, 64,
-            1000000l, 256,
-            10000000l, 4096
-            );
+            1_000l, 4,
+            10_000l, 64,
+            100_000l, 4096,
+            0l, 65536
+            ));
     
     public Sieve(long maxNumber, int threadsNumber, long summaryChunksSizeLimit) {
         super();
@@ -45,7 +48,7 @@ public class Sieve {
         this.primesPipes = Collections.synchronizedList(new ArrayList<>());
 
         for (int i = 0; i < computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size(); i++) {
-            primesPipes.add(new ArrayBlockingQueue<long[]>((int) (65536))); // !!!!
+            primesPipes.add(new ArrayBlockingQueue<long[]>((int) (Math.ceil(Math.max(MIN_QUEUE_SIZES, maxNumber * 0.05 / QUEUE_ARRAY_SIZES_MAP.get(0l) / 8 ))))); // !!!!
         }
         primesPipes.add(null);
         primesPipes.get(0).add(new long[] { 2l });
@@ -95,15 +98,15 @@ public class Sieve {
         Thread lastThread = null;
         List<ChunkResult> chunkResults = new ArrayList<>();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(EratostheneApplication.THREADS);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadsNumber);
         int chunksNumber = 0;
         for (int i = 0; i < computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size(); i++) {
 
 //             log.debug("chunk[#{} chunkSize={}, maxNumber={}]", i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber);
-            SieveChunk chunk = new SieveChunk(primesPipes.get(i), primesPipes.get(i + 1), i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber, dataSample);
+            SieveChunk chunk = new SieveChunk(primesPipes.get(i), primesPipes.get(i + 1), i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size() - 1, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber, dataSample);
             chunksNumber++;
 
-            log.debug("Starting chunk {}", chunk);
+//            log.debug("Starting chunk {}", chunk);
             lastChunkResultFuture =  executorService.submit(chunk);
 //            chunkResults.add(lastChunkResultFuture.get());
             

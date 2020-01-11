@@ -24,6 +24,8 @@ public class SieveChunk implements Callable<ChunkResult> {
     private long maxNumber = 0;
 
     private int chunkIndex = 0;
+    
+    private int chunksTotal = 0;
 
     private int chunkSize = 0;
 
@@ -47,11 +49,12 @@ public class SieveChunk implements Callable<ChunkResult> {
      * @param maxNumber
      */
 
-    public SieveChunk(BlockingQueue<long[]> primesIn, BlockingQueue<long[]> primesOut, int chunkIndex, int chunkSize, long maxNumber,
+    public SieveChunk(BlockingQueue<long[]> primesIn, BlockingQueue<long[]> primesOut, int chunkIndex, int chunksTotal, int chunkSize, long maxNumber,
             int[] dataSample) {
         this.dataSample = dataSample;
         this.chunkSize = chunkSize;
         this.chunkIndex = chunkIndex;
+        this.chunksTotal = chunksTotal;
         this.maxNumber = maxNumber;
         if (primesIn == null)
             throw new IllegalArgumentException("PrimesIn can't be null!");
@@ -62,6 +65,8 @@ public class SieveChunk implements Callable<ChunkResult> {
 
     public ChunkResult countPrimes() throws InterruptedException {
 
+        long chunkSizeMultipliedByChunkIndex = chunkSize * (long)chunkIndex;
+        
         data = new int[dataSample.length];
         System.arraycopy(dataSample, 0, data, 0, dataSample.length);
 
@@ -104,11 +109,11 @@ public class SieveChunk implements Callable<ChunkResult> {
                  } else {
                      
                      if (currentPrime < chunkSize) {
-                         for(long i = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex; chunkIndex * (long)chunkSize + i < maxNumber && i < chunkSize; i += currentPrime) {
+                         for(long i = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex; chunkSizeMultipliedByChunkIndex + i < maxNumber && i < chunkSize; i += currentPrime) {
                              data[(int)i] = 0;
                          }
                      } else {
-                         long l = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex;
+                         long l = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex;
                          if (l < chunkSize) {
                              data[(int)l] = 0;
                          }
@@ -128,7 +133,7 @@ public class SieveChunk implements Callable<ChunkResult> {
 
         while (currentPrime < (chunkIndex + 1) * (long)chunkSize && currentPrime <= maxNumber) {
 
-            int ii = (int)((chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex);
+            int ii = (int)((chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex);
             if (data[ii] == 1) {
 
                 if (indexInTransitionArray >= transitionArray.length) {
@@ -155,11 +160,11 @@ public class SieveChunk implements Callable<ChunkResult> {
                  } else {
                      
                      if (currentPrime < chunkSize) {
-                         for(long i = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex; chunkIndex * (long)chunkSize + i < maxNumber && i < chunkSize; i += currentPrime) {
+                         for(long i = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex; chunkSizeMultipliedByChunkIndex + i < maxNumber && i < chunkSize; i += currentPrime) {
                              data[(int)i] = 0;
                          }
                      } else {
-                         long l = (chunkSize * (long)chunkIndex / currentPrime + 1) * currentPrime - chunkSize * (long)chunkIndex;
+                         long l = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex;
                          if (l < chunkSize) {
                              data[(int)l] = 0;
                          }
@@ -201,9 +206,9 @@ public class SieveChunk implements Callable<ChunkResult> {
          
         if (getResult().size() > 0 && getResult().size() < 1000) {
             log.debug("result = {}", getResult());
-            log.debug("result.size() = {}", getResult().size());
+//            log.debug("result.size() = {}", getResult().size());
         } else if (getResult().size() > 0) {
-            log.debug("result.size() = {}", getResult().size());
+//            log.debug("result.size() = {}", getResult().size());
         }
         return result;
     }
@@ -213,18 +218,15 @@ public class SieveChunk implements Callable<ChunkResult> {
      * @return
      */
     public static int transitionArraySize(long currentPrime) {
-        int transitionArrayLength;
-        if (currentPrime < 100) {
-            transitionArrayLength = 1;
-        } else if (currentPrime < 1000) { 
-            transitionArrayLength = 4;
-        } else if (currentPrime < 10000) { 
-            transitionArrayLength = 16;
-        } else if (currentPrime < 100000) { 
-            transitionArrayLength = 64;
-        } else 
-            transitionArrayLength = 1024;
-        return transitionArrayLength;
+        if (currentPrime < 100l) {
+            return Sieve.QUEUE_ARRAY_SIZES_MAP.get(100l);
+        } else if (currentPrime < 1_000l) { 
+            return Sieve.QUEUE_ARRAY_SIZES_MAP.get(1_000l);
+        } else if (currentPrime < 10_000l) { 
+            return Sieve.QUEUE_ARRAY_SIZES_MAP.get(10_000l);
+        } else if (currentPrime < 100_000l) { 
+            return Sieve.QUEUE_ARRAY_SIZES_MAP.get(100_000l);
+        } else return Sieve.QUEUE_ARRAY_SIZES_MAP.get(0l);
     }
 
     public synchronized ChunkResult getResult() {
@@ -250,9 +252,9 @@ public class SieveChunk implements Callable<ChunkResult> {
         try {
             ChunkResult result = countPrimes();
                 if (result.size() < 100) {
-                    log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunkSize, maxNumber, result);
+                    log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result);
                 } else {
-                    log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunkSize, maxNumber, result.size());
+                    log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result.size());
                 }
 
         } catch (InterruptedException e) {

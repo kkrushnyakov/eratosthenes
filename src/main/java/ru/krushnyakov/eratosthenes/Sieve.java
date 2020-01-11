@@ -1,71 +1,143 @@
 package ru.krushnyakov.eratosthenes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Sieve implements Runnable {
-    
-    
-    private static Logger log = LoggerFactory.getLogger(Sieve.class);
-    
-    private long maxNumber;
-    
-    private int threads;
+public class Sieve {
 
-    private int chunkSize;
+    private static Logger log = LoggerFactory.getLogger(Sieve.class);
+
+    private long maxNumber;
+
+    private long summaryChunksSizeLimit;
+
+    private int threadsNumber;
+
+    private static int[] piece = new int[] { 0, 1 };
+
+    private List<BlockingQueue<long[]>> primesPipes;
+
+//    public static final int QUEUE_SIZES = 1048576;
+    public static final int MIN_QUEUE_SIZES = 16;
+//    public static final int QUEUE_SIZES = 1048576;
+            
+    public static final Map<Long, Integer> QUEUE_ARRAY_SIZES_MAP = Collections.unmodifiableMap(Map.of(
+            100l, 1,
+            1_000l, 4,
+            10_000l, 64,
+            100_000l, 4096,
+            0l, 65536
+            ));
     
-    private List<Long> primes;
-    
-    public Sieve(long maxNumber, int chunkSize, int threads) {
+    public Sieve(long maxNumber, int threadsNumber, long summaryChunksSizeLimit) {
         super();
         this.maxNumber = maxNumber;
-        this.threads = threads;
-        this.chunkSize = chunkSize;
-        this.primes = new ArrayList<>();
+        this.threadsNumber = threadsNumber;
+        this.summaryChunksSizeLimit = summaryChunksSizeLimit;
+        this.primesPipes = Collections.synchronizedList(new ArrayList<>());
+
+        for (int i = 0; i < computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size(); i++) {
+            primesPipes.add(new ArrayBlockingQueue<long[]>((int) (Math.ceil(Math.max(MIN_QUEUE_SIZES, maxNumber * 0.05 / QUEUE_ARRAY_SIZES_MAP.get(0l) / 8 ))))); // !!!!
+        }
+        primesPipes.add(null);
+        primesPipes.get(0).add(new long[] { 2l });
+        primesPipes.get(0).add(new long[0]);
     }
 
-    @Override
-    public void run() {
-        int[] data = new int[chunkSize];
-//        int[] piece = new int[INIT_PIECE_SIZE];
-        int[] piece = new int[] {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}; // piece.length == 16
-//        Arrays.fill(piece, 1);
+    /*
+     *  result.size >=  MAX( maxNumber / chunkSize, threadsNumber) 
+     *  chunkSize <= summaryChunksSizeLimit / threadsNumber
+     *  result.size >=  (maxNumber * threadsNumber) / summaryChunksSizeLimit
+     *  result.size >=  MAX( maxNumber / (summaryChunksSizeLimit / threadsNumber), threadsNumber) 
+         
+     * */
+    public static List<Integer> computeChunksLengths(long maxNumber, int threadsNumber, long summaryChunksSizeLimit) {
+        List<Integer> result = new ArrayList<>();
         
-        int degree = (int) Math.floor(Math.log(chunkSize) / Math.log(2));
+        int chunkSize = (int) Math.min(Integer.MAX_VALUE, Math.min(Math.ceil(summaryChunksSizeLimit / threadsNumber), Math.ceil((maxNumber + 1) / threadsNumber)));
+        chunkSize = (chunkSize % 2 == 0) ? chunkSize : chunkSize - 1;
+         int resultSize = (int)Math.ceil(Math.max( (maxNumber + 1) / (double)chunkSize, threadsNumber));
+         return Collections.nCopies(resultSize, chunkSize);
+         
+    }
+    
+    
+    public long getMaxNumber() {
+        return maxNumber;
+    }
 
-        degree = degree - (int) Math.floor(Math.log(piece.length) / Math.log(2)); 
+    public int getThreadsNumber() {
+        return threadsNumber;
+    }
+
+    public SieveResult sieve() throws InterruptedException, ExecutionException {
+        int maxChunkSize = computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).stream().mapToInt(Integer::intValue).max().getAsInt();
+        int[] dataSample = new int[maxChunkSize];
+        Future<ChunkResult> lastChunkResultFuture = null;
+        int degree = (int) Math.floor(Math.log(maxChunkSize) / Math.log(2));
+
+        degree = degree - (int) Math.floor(Math.log(piece.length) / Math.log(2)) + 1;
         int length = piece.length;
-        System.arraycopy(piece, 0, data, 0, piece.length);
+        System.arraycopy(piece, 0, dataSample, 0, piece.length);
         for (int i = 0; i < degree; i++) {
-            System.arraycopy(data, 0, data, length, length);
+            System.arraycopy(dataSample, 0, dataSample, length, Math.min(length, dataSample.length - length));
             length *= 2;
         }
-        System.arraycopy(data, 0, data, length, data.length - length);
-        
-        primes.add(2l);
-        for(int i = 0; i  * chunkSize < maxNumber; i ++) {
-//            log.debug("chunk[#{}  chunkSize={}, maxNumber={}]", i, chunkSize, maxNumber);
-            List chunkPrimes = new SieveChunk(primes, i, chunkSize, maxNumber, data).countPrimes();
-            if(chunkPrimes.size() < 100) {
-                log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", i, chunkSize, maxNumber, chunkPrimes);
-            } else
-            {
-                log.debug("chunk[#{} chunkSize={}, maxNumber={}] = {}", i, chunkSize, maxNumber, chunkPrimes.size());
-            }
-            primes.addAll(chunkPrimes);
-        }
-        
-        if(primes.size() < 1000) {
-            log.debug("ALL primes = {}", primes);
-        } else {
-            log.info("ALL primes size = {}", primes.size());
-        }
+
+        Thread lastThread = null;
+        List<ChunkResult> chunkResults = new ArrayList<>();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadsNumber);
+        int chunksNumber = 0;
+        for (int i = 0; i < computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size(); i++) {
+
+//             log.debug("chunk[#{} chunkSize={}, maxNumber={}]", i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber);
+            SieveChunk chunk = new SieveChunk(primesPipes.get(i), primesPipes.get(i + 1), i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size() - 1, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber, dataSample);
+            chunksNumber++;
+
+//            log.debug("Starting chunk {}", chunk);
+            lastChunkResultFuture =  executorService.submit(chunk);
+//            chunkResults.add(lastChunkResultFuture.get());
             
+            // lastThread = new Thread(chunk);
+            // lastThread.start();
+
+        }
+        executorService.shutdown();
         
+        while(!lastChunkResultFuture.isDone()) {
+            Thread.sleep(100);
+        }
+
+
+        /*        try {
+            lastThread.join();
+        } catch (InterruptedException e) {
+            log.error("{} thread is interrupted!", lastThread.getName());
+        }
+        */ 
+
+        
+        return new SieveResult(lastChunkResultFuture.get().getPrimes(), lastChunkResultFuture.get().size(), chunkResults);
+
+        /*        if(primesPipes.get(primesPipes.size() - 1).size() < 1000) {
+            log.debug("ALL primes = {}", primesPipes.get(primesPipes.size() - 1));
+        } else {
+            log.info("ALL primes size = {}", primesPipes.get(primesPipes.size() - 1).size() - 1);
+        }
+          */
+
     }
 
 }

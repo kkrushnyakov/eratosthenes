@@ -1,29 +1,18 @@
 package ru.krushnyakov.eratosthenes;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SieveResult {
 
-    private long[][] primes;
+    private List<SieveChunkResult> chunkResults;
     
-    public SieveResult(long[][] primes) {
+    public SieveResult(List<SieveChunkResult> chunkResults) {
         super();
-        this.primes = primes;
-    }
-
-    public List<Long> getPrimes() {
-        if(size() > 1000) return null;
-        
-        return Stream.of(primes).map(arr -> Arrays.stream(arr).boxed().collect(Collectors.toList())).reduce(new ArrayList<Long>(), (List<Long> l, List<Long> r) -> { l.addAll(r); return l;});
+        this.chunkResults = chunkResults;
     }
 
     public long size() {
-
-        return Arrays.stream(primes).mapToInt(a -> a.length).sum();
+        return chunkResults.stream().mapToLong(SieveChunkResult::getPrimesNumber).sum();
     }
 
     

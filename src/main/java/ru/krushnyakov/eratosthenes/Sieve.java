@@ -33,7 +33,7 @@ public class Sieve {
     
     private static boolean[] piece = new boolean[] { false, true };
     
-    private Map<Integer, Future<long[]>> primesMap = new ConcurrentHashMap<>(); //?
+    private Map<Integer, Future<SieveChunkResult>> primesMap = new ConcurrentHashMap<>(); //?
 
 
     public Sieve(long maxNumber, int threadsNumber, long summaryChunksSizeLimit) {
@@ -80,7 +80,7 @@ public class Sieve {
     }
     
 
-    public Map<Integer, Future<long[]>> getPrimesMap() {
+    public Map<Integer, Future<SieveChunkResult>> getPrimesMap() {
         return primesMap;
     }
 
@@ -88,7 +88,7 @@ public class Sieve {
         int maxChunkSize = computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).stream().mapToInt(Integer::intValue).max()
                 .getAsInt();
         boolean[] dataSample = new boolean[maxChunkSize];
-        Future<long[]> lastFuture = null;
+        Future<SieveChunkResult> lastFuture = null;
         int degree = (int) Math.floor(Math.log(maxChunkSize) / Math.log(2));
 
         degree = degree - (int) Math.floor(Math.log(piece.length) / Math.log(2)) + 1;
@@ -105,15 +105,10 @@ public class Sieve {
         int chunksNumber = 0;
         for (int i = 0; i < computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size(); i++) {
 
-            // log.debug("chunk[#{} chunkSize={}, maxNumber={}]", i,
-            // computeChunksLengths(maxNumber, threadsNumber,
-            // summaryChunksSizeLimit).get(i), maxNumber);
             SieveChunk chunk = new SieveChunk(this, i, computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).size() - 1,
                     computeChunksLengths(maxNumber, threadsNumber, summaryChunksSizeLimit).get(i), maxNumber, dataSample);
             chunksNumber++;
 
-            // log.debug("Starting chunk {}", chunk);
-            
             lastFuture = executorService.submit(chunk);
             primesMap.put(i, lastFuture);
 
@@ -125,14 +120,15 @@ public class Sieve {
         }
 
         long[][] result = new long[primesMap.values().size() + 1][];
-        
+        List<SieveChunkResult> results = new ArrayList<>();
             result[0] = initPrimes;
-            
+            results.add(new SieveChunkResult(initPrimes, 1, true));
             for (int i = 0; i < primesMap.values().size(); i++) {
-                result[i + 1] = primesMap.get(i).get();
+//                result[i + 1] = primesMap.get(i).get();
+                results.add(primesMap.get(i).get());
             }
         
-        return new SieveResult(result);
+        return new SieveResult(results);
 
     }
 

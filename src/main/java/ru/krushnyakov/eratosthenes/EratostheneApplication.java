@@ -15,8 +15,7 @@ public class EratostheneApplication implements ApplicationRunner {
 
     public final static int DEFAULT_THREADS = 1;// 1024 * 1024;
 
-    public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 1024 * 1024 * 1024l;
-    // public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 16;
+    public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 128 * 1024 * 1024l;
 
 
     public static void main(String[] args) {
@@ -26,7 +25,6 @@ public class EratostheneApplication implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
 
-        // Sieve sieve = new Sieve(1000000000, 1000000000, 1);
 
         final StopWatch stopWatch = new StopWatch();
 

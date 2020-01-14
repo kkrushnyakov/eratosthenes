@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  * @author kkrushnyakov
  *
  */
-public class SieveChunk implements Callable<long[]> {
+public class SieveChunk implements Callable<SieveChunkResult> {
 
     private static Logger log = LoggerFactory.getLogger(SieveChunk.class);
 
@@ -37,7 +37,7 @@ public class SieveChunk implements Callable<long[]> {
 
     /**
      * 
-     * @param primes
+     * @param data.primes
      * @param chunkIndex
      * @param chunkSize должна быть степенью двойки!
      * @param maxNumber
@@ -53,33 +53,27 @@ public class SieveChunk implements Callable<long[]> {
 
     }
 
-    public long[] countPrimes() throws InterruptedException, ExecutionException {
+    public SieveChunkResult countPrimes() throws InterruptedException, ExecutionException {
 
         long chunkSizeMultipliedByChunkIndex = chunkSize * (long) chunkIndex;
 
         data = new boolean[dataSample.length];
         System.arraycopy(dataSample, 0, data, 0, dataSample.length);
 
-        long[] resultPrimes = new long[(int) Sieve.primeNumbersPerMaxNumber(chunkSize)];
+        int maximumImportedChunkIndex = (int) Math.ceil(Math.sqrt(maxNumber) / chunkSize);
         
+
         int resultPrimesCounter = 0;
 
-        
         // Отмечаем в решете простые числа из предыдущего чанка
-        // while (true) {
-//        final StopWatch oldStopWatch = new StopWatch("old");
 
-//        oldStopWatch.start();
-        for (int importChunkIndex = 0; importChunkIndex < Math.ceil(chunkIndex / 2.0); importChunkIndex++) {
+        for (int importChunkIndex = 0; importChunkIndex < maximumImportedChunkIndex && importChunkIndex < chunkIndex; importChunkIndex++) {
+//            log.debug("chunkIndex = {} importChunkIndex = {}", chunkIndex, importChunkIndex);
+            for (long currentPrime : sieve.getPrimesMap().get(importChunkIndex).get().getPrimes()) {
+                if (currentPrime > Math.sqrt(maxNumber))
+                    break;
 
-            for (long currentPrime : sieve.getPrimesMap().get(importChunkIndex).get()) {
 
-                /*                if(Arrays.asList(2l).contains(currentPrime)) {
-                    currentPrime++;
-                    continue;
-                }
-                */
-                
                 if (chunkIndex == 0) {
                     for (long i = currentPrime; i < maxNumber && i < chunkSize; i += currentPrime) {
                         data[(int) i] = false;
@@ -104,18 +98,16 @@ public class SieveChunk implements Callable<long[]> {
             }
         }
 
-//        oldStopWatch.stop();
-//        log.debug("{} old = {}", chunkIndex, oldStopWatch.getTotalTimeMillis());
-        
+
         long currentPrime = (chunkIndex == 0 ? 3 : (chunkSize * (long) chunkIndex) + 1);
 
         // Ищем новые простые числа в текущем чанке
+
         
-//        final StopWatch newStopWatch = new StopWatch("new");
-
-//        newStopWatch.start();
-
-
+        if(chunkIndex <= maximumImportedChunkIndex) {
+        
+            long[] resultPrimes = new long[(int) Sieve.primeNumbersPerMaxNumber(chunkSize)];
+        
         while (currentPrime < (chunkIndex + 1) * (long) chunkSize && currentPrime <= maxNumber) {
 
             int ii = (int) ((chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex);
@@ -141,37 +133,60 @@ public class SieveChunk implements Callable<long[]> {
                     }
 
                 }
-             resultPrimes[resultPrimesCounter] = currentPrime;
-             resultPrimesCounter++;
+                resultPrimes[resultPrimesCounter] = currentPrime;
+                resultPrimesCounter++;
             }
             currentPrime++;
         }
 
-//        newStopWatch.stop();
-//        log.debug("{} new = {}", chunkIndex, newStopWatch.getTotalTimeMillis());
-
-        
-        // List<Long> resultPrimesList=
-        // resultPrimes.stream().flatMapToLong(Arrays::stream).boxed().filter(l -> l !=
-        // 0).collect(Collectors.toList());
-
-        // setResult(new ChunkResult(resultPrimes));
         primes = new long[resultPrimesCounter];
         System.arraycopy(resultPrimes, 0, primes, 0, resultPrimesCounter);
-        return primes;
+        return new SieveChunkResult(primes, resultPrimesCounter, true);
+        } else {
+         
+            while (currentPrime < (chunkIndex + 1) * (long) chunkSize && currentPrime <= maxNumber) {
+
+                int ii = (int) ((chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex);
+                if (data[ii] == true) {
+
+                    if (chunkIndex == 0) {
+                        for (long i = currentPrime; i < maxNumber && i < chunkSize; i += currentPrime) {
+                            data[(int) i] = false;
+                        }
+                    } else {
+
+                        if (currentPrime < chunkSize) {
+                            for (long i = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime
+                                    - chunkSizeMultipliedByChunkIndex; chunkSizeMultipliedByChunkIndex + i < maxNumber
+                                            && i < chunkSize; i += currentPrime) {
+                                data[(int) i] = false;
+                            }
+                        } else {
+                            long l = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex;
+                            if (l < chunkSize) {
+                                data[(int) l] = false;
+                            }
+                        }
+
+                    }
+                    resultPrimesCounter++;
+                }
+                currentPrime++;
+            }
+            return new SieveChunkResult(primes, resultPrimesCounter, false);
+        }
     }
 
-
     @Override
-    public long[] call() throws Exception {
-        long[] result = null;
+    public SieveChunkResult call() throws Exception {
+        SieveChunkResult result = null;
 
         try {
             result = countPrimes();
-            if (result.length < 100) {
-                log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result);
+            if (result.hasPrimes && result.primesNumber < 100) {
+//                log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result.getPrimes());
             } else {
-                log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result.length);
+//                log.debug("chunk[#{}/{} chunkSize={}, maxNumber={}] = {}", chunkIndex, chunksTotal, chunkSize, maxNumber, result.getPrimesNumber());
             }
 
         } catch (InterruptedException e) {
@@ -179,5 +194,6 @@ public class SieveChunk implements Callable<long[]> {
         }
         return result;
     }
+
 
 }

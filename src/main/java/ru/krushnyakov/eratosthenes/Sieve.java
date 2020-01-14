@@ -57,8 +57,9 @@ public class Sieve {
     public static List<Integer> computeChunksLengths(long maxNumber, int threadsNumber, long summaryChunksSizeLimit) {
         List<Integer> result = new ArrayList<>();
 
-        int chunkSize = (int) Math.min(Integer.MAX_VALUE,
-                Math.min(Math.ceil(summaryChunksSizeLimit / threadsNumber), Math.ceil((maxNumber + 1) / threadsNumber)));
+        
+        int chunkSize = 524288 - 65536;
+//        int chunkSize = (int) Math.min(Integer.MAX_VALUE, Math.min(Math.ceil(summaryChunksSizeLimit / threadsNumber), Math.ceil((maxNumber + 1) / threadsNumber)));
         chunkSize = (chunkSize % 2 == 0) ? chunkSize : chunkSize - 1;
         int resultSize = (int) Math.ceil(Math.max((maxNumber + 1) / (double) chunkSize, threadsNumber));
         return Collections.nCopies(resultSize, chunkSize);

@@ -87,10 +87,10 @@ public class SieveChunk implements Callable<long[]> {
                 } else {
 
                     if (currentPrime < chunkSize) {
-                        for (long i = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime
-                                - chunkSizeMultipliedByChunkIndex; chunkSizeMultipliedByChunkIndex + i < maxNumber
+                        for (int i = (int) ((chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime
+                                - chunkSizeMultipliedByChunkIndex); chunkSizeMultipliedByChunkIndex + i < maxNumber
                                         && i < chunkSize; i += currentPrime) {
-                            data[(int) i] = false;
+                            data[i] = false;
                         }
                     } else {
                         long l = (chunkSizeMultipliedByChunkIndex / currentPrime + 1) * currentPrime - chunkSizeMultipliedByChunkIndex;

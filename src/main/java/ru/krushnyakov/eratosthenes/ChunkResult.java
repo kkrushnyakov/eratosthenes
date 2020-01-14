@@ -1,42 +1,21 @@
 package ru.krushnyakov.eratosthenes;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 public class ChunkResult {
 
-    private final List<Long> primes;
+    private final long[] primes;
 
-    private final long primesNumber;
-
-    public ChunkResult(List<Long> primes, long primesNumber) {
+    public ChunkResult(long[] primes) {
         super();
         this.primes = primes;
-        this.primesNumber = primesNumber;
     }
 
-    public List<Long> getPrimes() {
-        return Collections.unmodifiableList(primes);
+    public long[] getPrimes() {
+        return primes;
     }
-
-    
     
     public long size() {
-        return primesNumber;
+        return primes.length;
     }
 
-    @Override
-    public String toString() {
-        final int maxLen = 100;
-        return "ChunkResult [primes=" + (primes != null ? primes.subList(0, Math.min(primes.size(), maxLen)) : null) + ", primesNumber="
-                + primesNumber + "]";
-    }
-
-    
 
 }

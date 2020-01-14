@@ -1,48 +1,30 @@
 package ru.krushnyakov.eratosthenes;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SieveResult {
 
-    private List<Long> primes;
-
-    private long primesNumber;
-
-    private List<ChunkResult> chunks;
+    private long[][] primes;
     
-    public SieveResult(List<Long> primes, long primesNumber, List<ChunkResult> chunks) {
+    public SieveResult(long[][] primes) {
         super();
         this.primes = primes;
-        this.primesNumber = primesNumber;
-        this.chunks = chunks;
     }
 
     public List<Long> getPrimes() {
-        return primes;
+        if(size() > 1000) return null;
+        
+        return Stream.of(primes).map(arr -> Arrays.stream(arr).boxed().collect(Collectors.toList())).reduce(new ArrayList<Long>(), (List<Long> l, List<Long> r) -> { l.addAll(r); return l;});
     }
 
     public long size() {
-        return primesNumber;
+
+        return Arrays.stream(primes).mapToInt(a -> a.length).sum();
     }
 
-    public long getPrimesNumber() {
-        return primesNumber;
-    }
-
-    public List<ChunkResult> getChunks() {
-        return chunks;
-    }
-
-    @Override
-    public String toString() {
-        final int maxLen = 100;
-        return "SieveResult [primes=" + (primes != null ? primes.subList(0, Math.min(primes.size(), maxLen)) : null) + ", primesNumber="
-                + primesNumber + ", chunks=" + (chunks != null ? chunks.subList(0, Math.min(chunks.size(), maxLen)) : null) + "]";
-    }
-
-
-    
-    
-    
     
 }

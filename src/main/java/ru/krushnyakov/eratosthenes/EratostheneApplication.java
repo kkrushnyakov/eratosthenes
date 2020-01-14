@@ -13,9 +13,9 @@ public class EratostheneApplication implements ApplicationRunner {
 
     private static Logger log = LoggerFactory.getLogger(EratostheneApplication.class);
 
-    public final static int THREADS = 1;// 1024 * 1024;
+    public final static int DEFAULT_THREADS = 1;// 1024 * 1024;
 
-    public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 256 * 1024 * 1024l;
+    public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 128 * 1024 * 1024l;
     // public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 16;
 
 

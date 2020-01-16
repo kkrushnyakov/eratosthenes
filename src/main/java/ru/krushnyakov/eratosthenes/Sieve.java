@@ -58,7 +58,7 @@ public class Sieve {
         List<Integer> result = new ArrayList<>();
 
         
-        int chunkSize = 524288 - 65536;
+        int chunkSize = EratostheneApplication.SIEVE_CHUNK_SIZE_LIMIT;
 //        int chunkSize = (int) Math.min(Integer.MAX_VALUE, Math.min(Math.ceil(summaryChunksSizeLimit / threadsNumber), Math.ceil((maxNumber + 1) / threadsNumber)));
         chunkSize = (chunkSize % 2 == 0) ? chunkSize : chunkSize - 1;
         int resultSize = (int) Math.ceil(Math.max((maxNumber + 1) / (double) chunkSize, threadsNumber));

@@ -33,6 +33,9 @@ public class SieveChunk implements Callable<SieveChunkResult> {
 
     private Sieve sieve;
 
+    private static ThreadLocal<boolean[]> threadLocal = new ThreadLocal<>();
+    
+    
     // private AtomicBoolean done;
 
     /**
@@ -55,9 +58,16 @@ public class SieveChunk implements Callable<SieveChunkResult> {
 
     public SieveChunkResult countPrimes() throws InterruptedException, ExecutionException {
 
+        
+        
+        
+        
         long chunkSizeMultipliedByChunkIndex = chunkSize * (long) chunkIndex;
 
-        data = new boolean[dataSample.length];
+        if(threadLocal.get() == null) {
+            threadLocal.set(new boolean[dataSample.length]);
+        }
+        data = threadLocal.get();
         System.arraycopy(dataSample, 0, data, 0, dataSample.length);
 
         int maximumImportedChunkIndex = (int) Math.ceil(Math.sqrt(maxNumber) / chunkSize);
@@ -67,10 +77,12 @@ public class SieveChunk implements Callable<SieveChunkResult> {
 
         // Отмечаем в решете простые числа из предыдущего чанка
 
+        long sqrtFromMaxNumber = (long) Math.sqrt(maxNumber);
+        
         for (int importChunkIndex = 0; importChunkIndex < maximumImportedChunkIndex && importChunkIndex < chunkIndex; importChunkIndex++) {
 //            log.debug("chunkIndex = {} importChunkIndex = {}", chunkIndex, importChunkIndex);
             for (long currentPrime : sieve.getPrimesMap().get(importChunkIndex).get().getPrimes()) {
-                if (currentPrime > Math.sqrt(maxNumber))
+                if (currentPrime > sqrtFromMaxNumber)
                     break;
 
 

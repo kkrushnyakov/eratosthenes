@@ -17,6 +17,11 @@ public class EratostheneApplication implements ApplicationRunner {
 
     public final static long SIEVE_CHUNKS_SUMMARY_SIZE_LIMIT = 128 * 1024 * 1024l;
 
+    public final static int SIEVE_CHUNK_SIZE_LIMIT = 524288 - 16384;
+//    public final static int SIEVE_CHUNK_SIZE_LIMIT = 262144;
+//    public final static int SIEVE_CHUNK_SIZE_LIMIT = 16384;
+
+    
 
     public static void main(String[] args) {
         SpringApplication.run(EratostheneApplication.class, args);
